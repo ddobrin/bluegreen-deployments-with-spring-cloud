@@ -1,0 +1,11 @@
+applications:
+  - name: blueservice
+    memory: 1024M
+    path: target/blueorgreen-1.0.0.jar
+    timeout: 60
+    services:
+    - bluegreen-registry
+    env:
+      SPRING_PROFILES_ACTIVE: blue
+    hosts:
+    - blueservice_v1
