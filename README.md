@@ -23,14 +23,14 @@ Spring Cloud Service Discovery features:
 * Eureka instances can be registered and clients can discover the instances using Spring-managed beans
 * An embedded Eureka server can be created with declarative Java configuration
 
-## Process 
-1. A version of the service (Blue) is live in an environment, and available to be discovered in Eureka
-2. A new version of the service is being built, configured and deployed (Green)
-3. Green is not registered in Eureka with the UP status and is considered in an OUT_OF_SERVICE status, thus not making it available for service consumers to discover
+## The Blue-Green Deployment Process 
+1. A version of the service (Blue) is live in an environment, say v1, and available to be discovered in Eureka
+2. A new version of the service is being built, configured and deployed (Green, say v2)
+3. Green is not registered in Eureka with the UP status and is considered in an OUT_OF_SERVICE status, thus not making it available for service consumers to discover. 
 4. Smoke testing commences against the Green version of the service, using the mapped route to the Green service
 5. Once testing is considered successful, the **gradual blue-green switch process starts**
 6. The status of the Green service version is set to UP in Eureka, from the current OUT_OF_SERVICE status
-7. Both Blue and Green versions of the service are up and service requests in a load-balanced manner, round-robin by default
+7. Both Blue and Green versions of the service are up and both service requests in a load-balanced manner, round-robin by default
 8. Decision can now be made to remove the Blue version of the service to an OUT_OF_SERVICE status, by changing its registration status in Eureka
 9. Please note that the Blue version of the service is not servicing requests and is not available for discovery, however it is still in a started mode, allowing for a quick reversal in case of failures
 10. The process can be completed by removing the Blue version of the service
@@ -66,10 +66,10 @@ The demo projects in this repo already have this so no need to do that.
 Install [Cloud Foundry CLI](http://docs.run.pivotal.io/cf-cli/) to deploy the apps.   Follow these [instructions](http://docs.run.pivotal.io/cf-cli/install-go-cli.html)
 to install the CLI.
 
-* **Login to a Cloud Foundry deployment**
+* **Login to your Cloud Foundry deployment**
 
 ```
- cf login -a https://api.run.pivotal.io
+ > cf login -a https://api.run.pivotal.io
 ```
 
 NOTE: Substitute your Cloud Foundry API URL if you are not using the cloud-hosted Pivotal Web Services.
@@ -82,16 +82,23 @@ depend on your account.
 
 1. **Deploy the Blue service version and register it in Eureka**
 
-```
-cd blueorgreenservice && ./mvnw clean package && cf push -f manifest_blue.yaml && cd ..
+Start by cloning the Github repository to a local folder of your choice
+```shell
+> git clone git@github.com:ddobrin/bluegreen-deployments-with-spring-cloud.git
 ```
 
-This will use the manifest_blue.yml file to deploy  to Cloud Foundry. You may run into issues during the deployment if there are other apps deployed to your Cloud Foundry instance already using the host names blueservice and/or greenservice. If this is the case, open the manifest.yml file and change the values in the hosts field so they are unique in your Cloud Foundry deployment.
+Switch to the new folder, ```bluegreen-deployments-with-spring-cloud```, build the ```blueorgreenservice``` app and deploy it to Cloud Foundry. 
 
-In this example, the Blue service version will be available at: ```
+```
+> cd bluegreenorgreenservice && ./mvnw clean package && cf push -f manifest_blue.yaml && cd ..
+```
+
+This deployment will use the ```manifest_blue.yml``` file to deploy  to Cloud Foundry. You may run into issues during the deployment if there are other apps deployed to your Cloud Foundry instance already using the host names blueservice and/or greenservice. If this is the case, open the ```manifest_blue.yml``` file and change the values in the hosts field so they are unique in your Cloud Foundry deployment.
+
+In our example, the Blue service version will be available at: ```
 https://blueservice_v1.cfapps.io```
 
-Please note that a prudent approach is recommended to be taken: start the service with an OUT_OF_SERVICE status, to mitigate any risk.
+Please note that a prudent approach is recommended to be taken: start the service with an OUT_OF_SERVICE status, to mitigate any risk. The service will be deployed and running, registered in Eureka, however not available to be discovered, as it is in ```OUT_OF_SERVICE``` status.
 ```
 eureka:
   client:
@@ -106,7 +113,7 @@ eureka:
     initial-status: out_of_service
 ```
 
-The app will automatically register with the Spring Cloud Service service discovery registry. Check the management console for the service discovery registry and notice that the Blue service version registered with an OUT_OF_SERVICE status, when clicking **Manage** in the **bluegreen-registry** registry instance.
+The app will automatically register with the Spring Cloud Service service discovery registry. Check the management console for the service discovery registry and notice that the Blue service version registered with an OUT_OF_SERVICE status, when clicking the top-right **Manage** link in the **bluegreen-registry** registry instance.
 
 Lets now change the change the status to UP in Eureka, thus making Blue available for service discovery.
 
@@ -120,25 +127,28 @@ Make sure that you change the URL in the above cURL command to be the correct on
 
 
 2. **Deploy a front-end web application and validate that Blue is registered and can be discovered**
-```
-cd blueorgreenfrontend && ./mvnw clean package && cf push && cd ..
-```
-Again you may run into issues if the host name is already in use. If that is he case open the manifest.yml file and modify the hosts property.
 
-Once the frontend web app is deployed are able to open the app using the URL from Cloud Foundry and see the web app in your browser at ```https://blueorgreenfrontend_v1.cfapps.io/```
+The front-end application ```blueorgreenfrontend``` is being deployed using the ```manifest.yaml``` file in the blueorgreenfrontend folder.
+```
+> cd blueorgreenfrontend && ./mvnw clean package && cf push && cd ..
+```
+Again, you may run into issues if the host name is already in use. If that is he case open the ```manifest.yml``` file and modify the hosts property.
+
+Once the frontend web app ```blueorgreenfrontend``` is deployed, you are able to open the app using the URL from Cloud Foundry and see the web app in your browser at ```https://blueorgreenfrontend_v1.cfapps.io/```
 
 Please note that the page displays a blue background.
 
 3. **Deploy the Green service version and register it in Eureka**
 
+Let's assume that development commences and a new version is available and required to be deployed. This is a new version of the app, and we'll call it Green. We use a 'v2' label to indicate that this is a subsequent version of the app
 ```
-cd blueorgreenservice && ./mvnw clean package && cf push -f manifest_green.yaml && cd ..
+> cd blueorgreenservice && ./mvnw clean package && cf push -f manifest_green.yaml && cd ..
 ```
 
-This will use the manifest_green.yml file to deploy  to Cloud Foundry. You may run into issues during the deployment if there are other apps deployed to your Cloud Foundry instance already using the host names blueservice and/or greenservice. If this is the case, open the manifest.yml file and change the values in the hosts field so they are unique in your Cloud Foundry deployment.
+This will use the ```manifest_green.yaml``` file to deploy  to Cloud Foundry. You may run into issues during the deployment if there are other apps deployed to your Cloud Foundry instance already using the host names ```blueservice``` and/or ```greenservice```. If this is the case, open the ```manifest_green.yaml``` file and change the values in the hosts field so they are unique in your Cloud Foundry deployment.
 
 In this example, the Green service version will be available at: ```
-https://greenservice_v1.cfapps.io```
+https://greenservice_v2.cfapps.io```
 
 Please note that a prudent approach is recommended to be taken, even more important than with the Blue service version: start the service with an OUT_OF_SERVICE status, to mitigate any risk. You do not wish to open it up for service discovery in Eureka before testing.
 
@@ -146,7 +156,7 @@ The app will automatically register with the SCS service discovery registry. Che
 
 Right now, since the green service is still labeled as OUT_OF_SERVICE you will just see BLUE displayed in the browser.
 
-#### Step 3: start the blue-green switch
+#### Step 3: Start the blue-green switch
 
 Lets change the status of the green service to UP.
 
@@ -161,7 +171,7 @@ Make sure that you change the URL in the above cURL command to be the correct on
 You will have to wait for the frontend web app to refresh it's data from the service registry before it knows the green service is now available but once that happens you should be able to refresh the web app and see that the result will alternate between BLUE and GREEN.
 
 **Important notes:**
-* The consumer of the **bluegreen** service is not aware at any time that there are multiple versions of the service deployed in Cloud Foundry. All it knows that the service discovery process will always be the same in Eureka:
+* The consumer of the **bluegreen** service is not aware at any time that there are multiple versions of the service deployed in Cloud Foundry. All it knows is that the service discovery process will always be the same in Eureka:
 ```code
 @RequestMapping("/color")
 public String color() {
@@ -195,57 +205,65 @@ After this step completes we can stop/delete the app.
 
 This status change may take a few minutes to propagate to the front end web app. Once this happens the web app will only display GREEN. At this point it is safe to shut down or delete the blue service.
 
+Why is the propagation not instanteneous: any instance involves a periodic heartbeat to the registry (through the client’s serviceUrl) with a default duration of 30 seconds. A service is not available for discovery by clients until the instance, the server, and the client all have the same metadata in their local cache (it could take 3 heartbeats). You can change the period by setting ```eureka.instance.leaseRenewalIntervalInSeconds```. Setting it to a value of less than 30 speeds up the process of getting clients connected to other services. In production, it is probably better to stick with the default, because of internal computations in the server that make assumptions about the lease renewal period.
+
+
 ```
 # unmap the route
-cf unmap-route greenservice cfapps.io --hostname blueservice_v1
+> cf unmap-route blueservice cfapps.io --hostname blueservice_v1
 
 # delete the route 
-cf delete-route cfapps.io --hostname blueservice_v2 -f
+> cf delete-route cfapps.io --hostname blueservice_v1 -f
 
 # delete the service
-cf delete delete service -f
+> cf delete blueservice -f
 ```
 
 ## Scaling a service in Cloud Foundry using Service Discovery in Spring Cloud
 
 One of the benefits of running applications in Cloud Foundry is the ease at which you can scale apps up and down. If you try to scale the BlueGreen Service app up in Cloud Foundry you will notice that each instance that is created will register with the service discovery registry service with a status of OUT_OF_SERVICE. This start with an OUT_OF_SERVICE status is a prudent approach followed throughout this demo.
 
-Scaling the number of instances of the Blue service to 3 can simply be done:
+Scaling the number of instances of the Green service to 3 can simply be done:
 ```
-cf scale blueservice -i 3
+> cf scale greenservice -i 3
 ```
-We observe: 1 instance listed as UP and 2 instances as OUT_OF_SERVICE
+We observe in the service registry console: 1 instance listed as UP and 2 instances as OUT_OF_SERVICE
 
 When there is more than one instance of the service running using the ".../service-registry/instance-status HTTP endpoint will prove problematic. This is because the CloudFoundry router will route requests to each instance in a round robin fashion so you can't just target the instances that are currently OUT_OF_SERVICE.
 
-To just target the instances that are currently OUT_OF_SERVICE you can use a special HTTP header containing the service GUID and the instance id. To figure out what the app GUID is, run the command:
+To just target the instances that are currently OUT_OF_SERVICE you can use a special HTTP header containing the service GUID and the instance id, ```X-CF-APP-INSTANCE```. 
+
+To retrieve the app GUID is, run the command:
 
 ```
-cf app blueservice --guid
+> cf app greenservice --guid
 
 # sample response 
-be0866ea-bf9d-49db-8b26-f731d99d8346
+4f4ac9aa-1829-4ae7-aa38-7f2dcdc48862
 ```    
-To find the instance id, which just a 0 based index, we can run:
+To find the instance id, which is just a 0 based index, we can run:
 ```
-cf app blueservice
+> cf app greenservice
 ```
 A sample response would be similar to:
 ```
-Showing health and status for app blueservice in org ... / space ddobrin as ...
+Showing health and status for app greenservice in org Canada / space ddobrin as ddobrin@pivotal.io...
 
-name:              blueservice
+name:              greenservice
 requested state:   started
-routes:            blueservice_v1.cfapps.io
-last uploaded:     Mon 09 Mar 17:15:08 EDT 2020
-...
+routes:            greenservice_v2.cfapps.io
+last uploaded:     Thu 19 Mar 08:42:52 EDT 2020
+stack:             cflinuxfs3
+buildpacks:        client-certificate-mapper=1.11.0_RELEASE container-security-provider=1.16.0_RELEASE java-buildpack=v4.26-offline-https://github.com/cloudfoundry/java-buildpack.git#e06e00b java-main java-opts
+                   java-security jvmkill-agent=1.16.0_RELEASE open-jdk...
+
 type:           web
 instances:      3/3
 memory usage:   1024M
-    state     since                  cpu    memory         disk           details
-#0   running   2020-03-09T21:15:49Z   0.7%   254.2M of 1G   149.1M of 1G
-#1   running   2020-03-09T21:24:54Z   1.4%   240.3M of 1G   149.1M of 1G
-#2   running   2020-03-09T21:25:03Z   0.8%   241.4M of 1G   149.1M of 1G
+     state     since                  cpu    memory         disk           details
+#0   running   2020-03-19T12:43:26Z   0.7%   248.4M of 1G   149.1M of 1G
+#1   running   2020-03-19T14:11:30Z   1.3%   252.6M of 1G   149.1M of 1G
+#2   running   2020-03-19T14:11:20Z   1.4%   230.5M of 1G   149.1M of 1G
 ```
 
 The numbers, #0, #1, #2, are the instance ids. To make a request specifically to instance #1 to change the status to UP, a sample would look like this:
@@ -253,16 +271,17 @@ The numbers, #0, #1, #2, are the instance ids. To make a request specifically to
 # Please note the guid and instance numbers ...
 # X-CF-APP-INSTANCE header is what tells the CF router which instance to target. 
 # The value should take the format of APP_GUID:INSTANCE_ID
+# ex.: X-CF-APP-INSTANCE: 4f4ac9aa-1829-4ae7-aa38-7f2dcdc48862:1 --> GUID + first instance
 
 # second instance
-curl -X "POST" "https://blueservice_v1.cfapps.io/service-registry/instance-status" \
-    -H "X-CF-APP-INSTANCE: be0866ea-bf9d-49db-8b26-f731d99d8346:1" \
+curl -X "POST" "https://greenservice_v2.cfapps.io/service-registry/instance-status" \
+    -H "X-CF-APP-INSTANCE: 4f4ac9aa-1829-4ae7-aa38-7f2dcdc48862:1" \
     -H "Content-Type: text/plain; charset=utf-8" \
     -d "UP"
 
 # third instance
-curl -X "POST" "https://blueservice_v1.cfapps.io/service-registry/instance-status" \
-    -H "X-CF-APP-INSTANCE: be0866ea-bf9d-49db-8b26-f731d99d8346:2" \
+curl -X "POST" "https://greenservice_v2.cfapps.io/service-registry/instance-status" \
+    -H "X-CF-APP-INSTANCE: 4f4ac9aa-1829-4ae7-aa38-7f2dcdc48862:2" \
     -H "Content-Type: text/plain; charset=utf-8" \
     -d "UP"
 

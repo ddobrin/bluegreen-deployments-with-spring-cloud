@@ -3,7 +3,7 @@ applications:
 - name: blueorgreenfrontend
   memory: 1024M
   path: target/blueorgreenfrontend-0.0.1-SNAPSHOT.jar
-  timeout: 60
+  timeout: 120
   services:
   - bluegreen-registry
   hosts:
