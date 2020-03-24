@@ -25,16 +25,33 @@ Spring Cloud Service Discovery features:
 
 ## The Blue-Green Deployment Process 
 1. A version of the service (Blue) is live in an environment, say v1, and available to be discovered in Eureka
+
+![Image1](https://github.com/ddobrin/bluegreen-deployments-with-spring-cloud/blob/master/images/BG-CF1.png)  
+
+The service is being made discoverable in the Eureka service registry
+
+![Image2](https://github.com/ddobrin/bluegreen-deployments-with-spring-cloud/blob/master/images/BG-CF2.png)  
+
 2. A new version of the service is being built, configured and deployed (Green, say v2)
 3. Green is not registered in Eureka with the UP status and is considered in an OUT_OF_SERVICE status, thus not making it available for service consumers to discover. 
+
+![Image3](https://github.com/ddobrin/bluegreen-deployments-with-spring-cloud/blob/master/images/BG-CF3.png)  
+
 4. Smoke testing commences against the Green version of the service, using the mapped route to the Green service
 5. Once testing is considered successful, the **gradual blue-green switch process starts**
 6. The status of the Green service version is set to UP in Eureka, from the current OUT_OF_SERVICE status
+
+![Image4](https://github.com/ddobrin/bluegreen-deployments-with-spring-cloud/blob/master/images/BG-CF4.png)  
+
 7. Both Blue and Green versions of the service are up and both service requests in a load-balanced manner, round-robin by default
+
+![Image5](https://github.com/ddobrin/bluegreen-deployments-with-spring-cloud/blob/master/images/BG-CF5.png)  
+
 8. Decision can now be made to remove the Blue version of the service to an OUT_OF_SERVICE status, by changing its registration status in Eureka
 9. Please note that the Blue version of the service is not servicing requests and is not available for discovery, however it is still in a started mode, allowing for a quick reversal in case of failures
 10. The process can be completed by removing the Blue version of the service
 
+![Image6](https://github.com/ddobrin/bluegreen-deployments-with-spring-cloud/blob/master/images/BG-CF6.png)  
 
 ## Running The Sample On Cloud Foundry
 Cloud Foundry offers a more real world blue/green deployment scenario when compared to a local test. 
