@@ -107,7 +107,7 @@ Start by cloning the Github repository to a local folder of your choice
 Switch to the new folder, ```bluegreen-deployments-with-spring-cloud```, build the ```blueorgreenservice``` app and deploy it to Cloud Foundry. 
 
 ```
-> cd bluegreenorgreenservice && ./mvnw clean package && cf push -f manifest_blue.yaml && cd ..
+> cd blueorgreenservice && ./mvnw clean package && cf push -f manifest_blue.yaml && cd ..
 ```
 
 This deployment will use the ```manifest_blue.yml``` file to deploy  to Cloud Foundry. You may run into issues during the deployment if there are other apps deployed to your Cloud Foundry instance already using the host names blueservice and/or greenservice. If this is the case, open the ```manifest_blue.yml``` file and change the values in the hosts field so they are unique in your Cloud Foundry deployment.
